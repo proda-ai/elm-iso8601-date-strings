@@ -6,10 +6,29 @@ module Iso8601 exposing (fromTime, toTime, decoder, encode)
 
 -}
 
+import Char
+import Compat.Parser as Parser exposing ((|.), (|=), Parser, andThen, end, int, map, oneOf, succeed, symbol)
+import Compat.Time as Time exposing (Month(..), utc)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
-import Parser exposing ((|.), (|=), Parser, andThen, end, int, map, oneOf, succeed, symbol)
-import Time exposing (Month(..), utc)
+
+
+
+-- COMPAT
+
+
+{-| 0.19 modBy
+-}
+modBy : Int -> Int -> Int
+modBy a b =
+    b % a
+
+
+{-| 0.19 fromInt
+-}
+fromInt : Int -> String
+fromInt =
+    Basics.toString
 
 
 {-| Decode an ISO-8601 date string to a `Time.Posix` value using [`toTime`](#toTime).
@@ -56,7 +75,7 @@ paddedInt quantity =
         helper str =
             if String.length str == quantity then
                 -- StringtoInt works on zero-padded integers
-                case String.toInt str of
+                case String.toInt str |> Result.toMaybe of
                     Just intVal ->
                         Parser.succeed intVal
                             |> Parser.map Parser.Done
@@ -89,7 +108,7 @@ day in a month, and neither is 32.
 -}
 invalidDay : Int -> Parser Int
 invalidDay day =
-    Parser.problem ("Invalid day: " ++ String.fromInt day)
+    Parser.problem ("Invalid day: " ++ fromInt day)
 
 
 epochYear : Int
@@ -251,7 +270,7 @@ yearMonthDay ( year, month, dayInMonth ) =
                     succeedWith 28857600000
 
             _ ->
-                Parser.problem ("Invalid month: \"" ++ String.fromInt month ++ "\"")
+                Parser.problem ("Invalid month: \"" ++ fromInt month ++ "\"")
 
 
 fromParts : Int -> Int -> Int -> Int -> Int -> Int -> Time.Posix
@@ -366,7 +385,7 @@ utcOffsetInMinutes =
             -- No "Z" is valid
             , succeed 0
                 |. end
-            ]            
+            ]
 
 
 {-| Parse fractions of a second, and convert to milliseconds
@@ -378,7 +397,7 @@ fractionsOfASecondInMs =
         |> Parser.andThen
             (\str ->
                 if String.length str <= 9 then
-                    case String.toFloat ("0." ++ str) of
+                    case String.toFloat ("0." ++ str) |> Result.toMaybe of
                         Just floatVal ->
                             Parser.succeed (round (floatVal * 1000))
 
@@ -388,7 +407,7 @@ fractionsOfASecondInMs =
                 else
                     Parser.problem
                         ("Expected at most 9 digits, but got "
-                            ++ String.fromInt (String.length str)
+                            ++ fromInt (String.length str)
                         )
             )
 
@@ -459,7 +478,7 @@ fromTime time =
 
 toPaddedString : Int -> Int -> String
 toPaddedString digits time =
-    String.padLeft digits '0' (String.fromInt time)
+    String.padLeft digits '0' (fromInt time)
 
 
 fromMonth : Time.Month -> Int

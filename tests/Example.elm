@@ -1,10 +1,10 @@
 module Example exposing (knownValues, reflexive)
 
+import Compat.Time as Time
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer, float, int, list, string)
 import Iso8601
 import Test exposing (..)
-import Time
 
 
 knownValues : Test
